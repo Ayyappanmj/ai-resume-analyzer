@@ -1,0 +1,26 @@
+Backend Software Engineer
+
+We are looking for a Backend Software Engineer to design and maintain scalable APIs for our
+platform. You will work closely with cross-functional teams to translate requirements into
+production-ready solutions, troubleshoot and optimize applications for speed and scalability,
+and mentor junior engineers.
+
+Required skills:
+- 3+ years of experience with Python and Java
+- Strong experience building REST APIs (FastAPI, Django, or Flask)
+- Experience with PostgreSQL or MySQL
+- Docker and Kubernetes for containerization and orchestration
+- Familiarity with AWS or GCP
+- Solid understanding of software architecture and design patterns
+- Agile development experience
+
+Preferred:
+- Experience with CI/CD pipelines (GitHub Actions)
+- Knowledge of Redis and caching strategies
+- Exposure to machine learning or data pipelines
+
+Responsibilities:
+- Collaborate with cross-functional teams to translate requirements into solutions
+- Troubleshoot, debug, and optimize applications for speed and scalability
+- Write clean, tested, well-documented code
+- Participate in code reviews and mentor junior engineers
