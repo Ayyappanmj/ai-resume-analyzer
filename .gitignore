@@ -1,0 +1,31 @@
+# --- Secrets / environment ---
+.env
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Docker / persisted data volumes (if run outside containers) ---
+ollama_data/
+pg_data/
+
+# --- IDE / editor clutter ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+
+# --- Streamlit local cache (if generated) ---
+.streamlit/secrets.toml
