@@ -153,3 +153,11 @@ def make_report(result: AnalysisResult):
 @app.get("/history", response_model=list[HistoryItem])
 def history(limit: int = 20):
     return db.list_history(min(max(limit, 1), 100))
+
+@app.get("/")
+def root():
+    return {
+        "message": "AI Resume Analyzer API is running",
+        "status": "healthy",
+        "docs": "/docs"
+    }
