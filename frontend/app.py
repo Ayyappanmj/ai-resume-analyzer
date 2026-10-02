@@ -6,7 +6,10 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
-API_URL = os.getenv("API_URL", "http://localhost:8000").rstrip("/")
+API_URL = os.getenv(
+    "API_URL",
+    "https://ai-resume-analyzer-2-ws27.onrender.com"
+).rstrip("/")
 
 st.set_page_config(page_title="AI Resume Analyzer", page_icon="📄", layout="wide")
 
