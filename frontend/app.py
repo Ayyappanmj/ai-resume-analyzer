@@ -71,7 +71,7 @@ def radar(breakdown):
 
 def check_backend():
     try:
-        return requests.get(f"{API_URL}/health", timeout=3).json()
+        return requests.get(f"{API_URL}/health", timeout=20).json()
     except Exception:
         return None
 
@@ -85,8 +85,8 @@ with st.sidebar:
         st.caption(f"Ollama ({health['model']}): {'✅ ready' if health['ollama'] else '❌ not reachable'}  \n"
                    f"Database: {'✅ on' if health['database'] else '⚪ off'}")
     else:
-        st.error(f"API offline ({API_URL})")
-    use_llm = st.toggle("AI insights (Ollama / Llama 3.1)", value=True,
+        st.error(f"API offline or waking up ({API_URL})")
+    use_llm = st.toggle("AI insights (Ollama / Llama 3.1)", value=bool(health and health.get("ollama")),
                         help="Adds an AI summary, bullet rewrites and tailored interview questions.")
     if health and health.get("database"):
         try:
@@ -116,15 +116,28 @@ if st.button("Analyze resume", type="primary", use_container_width=True, disable
         files["jd_file"] = (jd_upload.name, jd_upload.getvalue(), jd_upload.type or "application/octet-stream")
     with st.spinner("Analyzing… the first run downloads models and can take a minute"):
         try:
-            resp = requests.post(f"{API_URL}/analyze", files=files,
-                                 data={"jd_text": jd_text, "use_llm": str(use_llm).lower()}, timeout=400)
-            if resp.status_code == 200:
-                st.session_state["result"] = resp.json()
-                st.session_state.pop("pdf", None)
+            resp = requests.post(
+                f"{API_URL}/analyze",
+                files=files,
+                data={"jd_text": jd_text, "use_llm": str(use_llm).lower()},
+                timeout=400,
+            )
+            if resp.ok:
+                try:
+                    result = resp.json()
+                except ValueError:
+                    st.error(f"API returned non-JSON ({resp.status_code}): {resp.text[:1000] or '[empty response]'}")
+                else:
+                    st.session_state["result"] = result
+                    st.session_state.pop("pdf", None)
             else:
-                st.error(resp.json().get("detail", resp.text))
+                try:
+                    detail = resp.json().get("detail", resp.text)
+                except ValueError:
+                    detail = resp.text or f"HTTP {resp.status_code} with an empty response"
+                st.error(f"API error {resp.status_code}: {detail}")
         except requests.RequestException as exc:
-            st.error(f"Could not reach the API: {exc}")
+            st.error(f"Could not reach the API at {API_URL}: {exc}")
 
 r = st.session_state.get("result")
 if not r:

@@ -49,6 +49,11 @@ def _jd_from_file(f: UploadFile, max_mb: int) -> str:
     return pdf_parser.normalize_text(data.decode("utf-8", errors="ignore"))
 
 
+@app.get("/")
+def root():
+    return {"message": "AI Resume Analyzer API is running", "status": "healthy", "docs": "/docs"}
+
+
 @app.get("/health")
 def health():
     s = get_settings()

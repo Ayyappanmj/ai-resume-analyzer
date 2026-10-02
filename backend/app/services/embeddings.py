@@ -41,7 +41,15 @@ def _lexical(a: str, b: str) -> float:
 
 
 def similarity(resume: str, jd: str) -> tuple[float, str]:
-    """Return (cosine in [0,1], method name)."""
+    """Return (similarity in [0,1], method name).
+
+    Sentence-Transformers is optional. On small cloud instances such as
+    Render's free tier it can consume too much memory / take too long to
+    download, so lexical similarity is the safe default. Set USE_EMBEDDINGS=true
+    when the deployment has enough RAM and the model is available.
+    """
+    if not get_settings().use_embeddings:
+        return _lexical(resume, jd), "lexical-fallback"
     try:
         return max(0.0, float(np.dot(_embed(resume), _embed(jd)))), "sentence-transformers"
     except Exception as exc:
