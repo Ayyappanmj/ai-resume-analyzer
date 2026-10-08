@@ -117,30 +117,35 @@ if st.button("Analyze resume", type="primary", use_container_width=True, disable
     files = {"resume": (resume.name, resume.getvalue(), "application/pdf")}
     if jd_upload is not None and not jd_text.strip():
         files["jd_file"] = (jd_upload.name, jd_upload.getvalue(), jd_upload.type or "application/octet-stream")
-    with st.spinner("Analyzing… the first run downloads models and can take a minute"):
+    with st.spinner("Waking up the API and analyzing… the first run downloads models and can take a minute"):
         try:
-            resp = requests.post(
-                f"{API_URL}/analyze",
-                files=files,
-                data={"jd_text": jd_text, "use_llm": str(use_llm).lower()},
-                timeout=400,
-            )
-            if resp.ok:
-                try:
-                    result = resp.json()
-                except ValueError:
-                    st.error(f"API returned non-JSON ({resp.status_code}): {resp.text[:1000] or '[empty response]'}")
+            requests.get(f"{API_URL}/health", timeout=30)
+        except requests.RequestException:
+            st.warning("Waking up server... please wait a few moments before submitting.")
+        else:
+            try:
+                resp = requests.post(
+                    f"{API_URL}/analyze",
+                    files=files,
+                    data={"jd_text": jd_text, "use_llm": str(use_llm).lower()},
+                    timeout=600,
+                )
+                if resp.ok:
+                    try:
+                        result = resp.json()
+                    except ValueError:
+                        st.error(f"API returned non-JSON ({resp.status_code}): {resp.text[:1000] or '[empty response]'}")
+                    else:
+                        st.session_state["result"] = result
+                        st.session_state.pop("pdf", None)
                 else:
-                    st.session_state["result"] = result
-                    st.session_state.pop("pdf", None)
-            else:
-                try:
-                    detail = resp.json().get("detail", resp.text)
-                except ValueError:
-                    detail = resp.text or f"HTTP {resp.status_code} with an empty response"
-                st.error(f"API error {resp.status_code}: {detail}")
-        except requests.RequestException as exc:
-            st.error(f"Could not reach the API at {API_URL}: {exc}")
+                    try:
+                        detail = resp.json().get("detail", resp.text)
+                    except ValueError:
+                        detail = resp.text or f"HTTP {resp.status_code} with an empty response"
+                    st.error(f"API error {resp.status_code}: {detail}")
+            except requests.RequestException as exc:
+                st.error(f"Could not reach the API at {API_URL}: {exc}")
 
 r = st.session_state.get("result")
 if not r:
