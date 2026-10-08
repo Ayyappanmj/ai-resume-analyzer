@@ -48,11 +48,11 @@ def analyze_with_llm(resume: str, jd: str, missing: list[str]) -> dict | None:
         "model": s.ollama_model,
         "stream": False,
         "format": "json",
-        "options": {"temperature": 0.2, "num_ctx": 8192},
+        "options": {"temperature": 0.2, "num_ctx": 4096},
         "messages": [
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": PROMPT.format(
-                resume=resume[:6000], jd=jd[:3500], missing=", ".join(missing[:12]) or "none")},
+                resume=resume[:4000], jd=jd[:2500], missing=", ".join(missing[:12]) or "none")},
         ],
     }
     try:

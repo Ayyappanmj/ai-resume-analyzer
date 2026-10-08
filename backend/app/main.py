@@ -93,59 +93,63 @@ def analyze(
     if len(jd.split()) < 20:
         raise HTTPException(422, "Please provide a job description (at least ~20 words).")
 
-    # --- NLP ---
-    sections = sec.detect_sections(text)
-    detected, missing_sections = sec.detected_names(sections), sec.missing_core(sections)
-    contact = nlp.extract_contact(text)
+    try:
+        # --- NLP ---
+        sections = sec.detect_sections(text)
+        detected, missing_sections = sec.detected_names(sections), sec.missing_core(sections)
+        contact = nlp.extract_contact(text)
 
-    resume_counts = nlp.extract_skills(text)
-    jd_counts = nlp.extract_skills(jd)
-    resume_set = set(resume_counts)
-    jd_skills = sorted(jd_counts, key=lambda k: (-jd_counts[k], k))
-    matched = [k for k in jd_skills if k in resume_set]
-    missing = [k for k in jd_skills if k not in resume_set]
+        resume_counts = nlp.extract_skills(text)
+        jd_counts = nlp.extract_skills(jd)
+        resume_set = set(resume_counts)
+        jd_skills = sorted(jd_counts, key=lambda k: (-jd_counts[k], k))
+        matched = [k for k in jd_skills if k in resume_set]
+        missing = [k for k in jd_skills if k not in resume_set]
 
-    keywords = nlp.extract_keywords(text, 20)
-    jd_keywords = nlp.extract_keywords(jd, 25)
-    lower = text.lower()
-    missing_kw_all = [k for k in jd_keywords if k not in lower]
-    coverage = 1 - len(missing_kw_all) / len(jd_keywords) if jd_keywords else 0.0
+        keywords = nlp.extract_keywords(text, 20)
+        jd_keywords = nlp.extract_keywords(jd, 25)
+        lower = text.lower()
+        missing_kw_all = [k for k in jd_keywords if k not in lower]
+        coverage = 1 - len(missing_kw_all) / len(jd_keywords) if jd_keywords else 0.0
 
-    sim, method = embeddings.similarity(text, jd)
+        sim, method = embeddings.similarity(text, jd)
 
-    ats, breakdown = scoring.compute_ats(
-        text=text, sections_detected=detected, contact=contact, matched=matched,
-        jd_skills=jd_skills, resume_skills=sorted(resume_set), keyword_coverage=coverage,
-        similarity=sim, method=method,
-    )
-    suggestions = scoring.build_suggestions(
-        items=breakdown, missing_skills=missing, missing_sections=missing_sections,
-        missing_keywords=missing_kw_all, contact=contact,
-    )
+        ats, breakdown = scoring.compute_ats(
+            text=text, sections_detected=detected, contact=contact, matched=matched,
+            jd_skills=jd_skills, resume_skills=sorted(resume_set), keyword_coverage=coverage,
+            similarity=sim, method=method,
+        )
+        suggestions = scoring.build_suggestions(
+            items=breakdown, missing_skills=missing, missing_sections=missing_sections,
+            missing_keywords=missing_kw_all, contact=contact,
+        )
 
-    # --- LLM (optional, graceful fallback) ---
-    ai = llm.analyze_with_llm(text, jd, missing) if use_llm else None
-    result = AnalysisResult(
-        filename=resume.filename or "resume.pdf",
-        ats_score=ats, grade=scoring.grade_for(ats), breakdown=breakdown,
-        similarity_score=round(sim * 100, 1), similarity_method=method,
-        word_count=words, pages=pages, contact=contact,
-        sections_detected=detected, sections_missing=missing_sections,
-        resume_skills=nlp.group_skills(sorted(resume_set)),
-        jd_skills=jd_skills, matched_skills=matched, missing_skills=missing,
-        keywords=keywords, jd_keywords=jd_keywords, missing_keywords=missing_kw_all[:15],
-        summary=(ai or {}).get("summary") or llm.fallback_summary(
-            filename=resume.filename or "", words=words, sections=detected, skills=sorted(resume_set),
-            ats=ats, matched=matched, jd_skills=jd_skills),
-        strengths=(ai or {}).get("strengths", []),
-        weaknesses=(ai or {}).get("weaknesses", []),
-        suggestions=suggestions,
-        improved_bullets=(ai or {}).get("improved_bullets") or llm.fallback_bullets(matched),
-        interview_questions=(ai or {}).get("interview_questions") or llm.fallback_questions(matched, missing),
-        llm_used=ai is not None,
-    )
-    result.id = db.save_analysis(result)
-    return result
+        # --- LLM (optional, graceful fallback) ---
+        ai = llm.analyze_with_llm(text, jd, missing) if use_llm else None
+        result = AnalysisResult(
+            filename=resume.filename or "resume.pdf",
+            ats_score=ats, grade=scoring.grade_for(ats), breakdown=breakdown,
+            similarity_score=round(sim * 100, 1), similarity_method=method,
+            word_count=words, pages=pages, contact=contact,
+            sections_detected=detected, sections_missing=missing_sections,
+            resume_skills=nlp.group_skills(sorted(resume_set)),
+            jd_skills=jd_skills, matched_skills=matched, missing_skills=missing,
+            keywords=keywords, jd_keywords=jd_keywords, missing_keywords=missing_kw_all[:15],
+            summary=(ai or {}).get("summary") or llm.fallback_summary(
+                filename=resume.filename or "", words=words, sections=detected, skills=sorted(resume_set),
+                ats=ats, matched=matched, jd_skills=jd_skills),
+            strengths=(ai or {}).get("strengths", []),
+            weaknesses=(ai or {}).get("weaknesses", []),
+            suggestions=suggestions,
+            improved_bullets=(ai or {}).get("improved_bullets") or llm.fallback_bullets(matched),
+            interview_questions=(ai or {}).get("interview_questions") or llm.fallback_questions(matched, missing),
+            llm_used=ai is not None,
+        )
+        result.id = db.save_analysis(result)
+        return result
+    except Exception as exc:
+        log.exception("Resume analysis failed")
+        raise HTTPException(500, "Resume analysis failed. Please try again.") from exc
 
 
 @app.post("/report", response_class=Response)

@@ -75,3 +75,16 @@ def test_requires_jd(client):
     pdf = make_pdf(RESUME_LINES)
     r = client.post("/analyze", files={"resume": ("cv.pdf", pdf, "application/pdf")}, data={"jd_text": "short"})
     assert r.status_code == 422
+
+
+def test_analysis_error_returns_json_500(client, monkeypatch):
+    def fail_analysis(_text):
+        raise RuntimeError("internal processing failure")
+
+    monkeypatch.setattr(main.nlp, "extract_contact", fail_analysis)
+    pdf = make_pdf(RESUME_LINES)
+    r = client.post("/analyze", files={"resume": ("cv.pdf", pdf, "application/pdf")},
+                    data={"jd_text": JD, "use_llm": "false"})
+
+    assert r.status_code == 500
+    assert r.json() == {"detail": "Resume analysis failed. Please try again."}

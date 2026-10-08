@@ -19,13 +19,15 @@ def _model():
     return SentenceTransformer(get_settings().embedding_model)
 
 
-def _chunks(text: str, words: int = 180) -> list[str]:
+def _chunks(text: str, words: int = 120) -> list[str]:
     toks = text.split()
     return [" ".join(toks[i:i + words]) for i in range(0, len(toks), words)] or [text]
 
 
 def _embed(text: str) -> np.ndarray:
-    vecs = _model().encode(_chunks(text), normalize_embeddings=True, convert_to_numpy=True)
+    vecs = _model().encode(
+        _chunks(text), batch_size=8, normalize_embeddings=True, convert_to_numpy=True
+    )
     v = vecs.mean(axis=0)
     n = np.linalg.norm(v)
     return v / n if n else v
