@@ -69,15 +69,12 @@ def root():
 
 @app.get("/health")
 def health():
-    s = get_settings()
-    ollama_ok = False
-    try:
-        import httpx
-
-        ollama_ok = httpx.get(f"{s.ollama_host}/api/tags", timeout=2).status_code == 200
-    except Exception:
-        pass
-    return {"status": "ok", "ollama": ollama_ok, "model": s.ollama_model, "database": db.enabled()}
+    return {
+        "status": "ok",
+        "groq_configured": llm.is_configured(),
+        "model": llm.MODEL,
+        "database": db.enabled(),
+    }
 
 
 @app.post("/analyze", response_model=AnalysisResult)

@@ -1,4 +1,5 @@
 import io
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,7 +49,43 @@ def client(monkeypatch):
 
 
 def test_health(client):
-    assert client.get("/health").json()["status"] == "ok"
+    response = client.get("/health").json()
+    assert response["status"] == "ok"
+    assert "groq_configured" in response and response["model"] == llm.MODEL
+
+
+def test_groq_response_is_parsed(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    payload = (
+        '{"summary":"Candidate summary","strengths":["Python"],"weaknesses":["Cloud"],'
+        '"improved_bullets":["Built an API"],"interview_questions":["How?"]}'
+    )
+    request = {}
+
+    def create(**kwargs):
+        request.update(kwargs)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=payload))]
+        )
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=create))
+    )
+    monkeypatch.setattr(llm, "_groq_client", lambda: fake_client)
+
+    result = llm.analyze_with_llm("resume", "job description", ["AWS"])
+
+    assert result is not None and result["summary"] == "Candidate summary"
+    assert request["model"] == "llama-3.1-8b-instant"
+    assert request["temperature"] == 0.2
+    assert request["response_format"] == {"type": "json_object"}
+
+
+def test_groq_missing_api_key_returns_fallback(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setattr(llm, "_groq_client", lambda: pytest.fail("client should not be created"))
+
+    assert llm.analyze_with_llm("resume", "job description", []) is None
 
 
 @pytest.mark.parametrize(("enabled", "expected_calls"), [(False, 0), (True, 1)])

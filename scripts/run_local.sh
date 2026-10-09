@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run backend + frontend locally without Docker (assumes Python 3.11 + Ollama installed).
+# Run backend + frontend locally without Docker (assumes Python 3.11).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -8,7 +8,6 @@ source "$ROOT/.venv/bin/activate"
 pip install -q -r "$ROOT/backend/requirements.txt" -r "$ROOT/frontend/requirements.txt"
 python -m spacy download en_core_web_sm
 
-export OLLAMA_HOST="${OLLAMA_HOST:-http://localhost:11434}"
 export DATABASE_URL="${DATABASE_URL:-}"
 
 (cd "$ROOT/backend" && uvicorn app.main:app --reload --port 8000) &

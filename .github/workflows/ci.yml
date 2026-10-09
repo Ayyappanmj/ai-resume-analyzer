@@ -36,7 +36,6 @@ jobs:
         run: pytest -v
         env:
           DATABASE_URL: ""
-          OLLAMA_HOST: "http://localhost:11434"
 
   docker-build:
     runs-on: ubuntu-latest

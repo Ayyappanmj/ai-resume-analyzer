@@ -85,11 +85,11 @@ with st.sidebar:
     health = check_backend()
     if health:
         st.success("API online")
-        st.caption(f"Ollama ({health['model']}): {'✅ ready' if health['ollama'] else '❌ not reachable'}  \n"
+        st.caption(f"Groq ({health['model']}): {'✅ configured' if health['groq_configured'] else '❌ API key missing'}  \n"
                    f"Database: {'✅ on' if health['database'] else '⚪ off'}")
     else:
         st.error(f"API offline or waking up ({API_URL})")
-    use_llm = st.toggle("AI insights (Ollama / Llama 3.1)", value=bool(health and health.get("ollama")),
+    use_llm = st.toggle("AI insights (Groq / Llama 3.1)", value=bool(health and health.get("groq_configured")),
                         help="Adds an AI summary, bullet rewrites and tailored interview questions.")
     if health and health.get("database"):
         try:
@@ -217,7 +217,7 @@ with t_sec:
 
 with t_ai:
     if not r["llm_used"]:
-        st.warning("AI insights unavailable - start Ollama (`ollama pull llama3.1`) and re-run, or enable the toggle.")
+        st.warning("AI insights unavailable - configure GROQ_API_KEY and re-run, or enable the toggle.")
     a, b = st.columns(2)
     a.markdown("<div class='card'><h4>Strengths</h4><ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in r["strengths"]) + "</ul></div>",
                unsafe_allow_html=True)
@@ -225,7 +225,7 @@ with t_ai:
                unsafe_allow_html=True)
 
 with t_int:
-    label = "Improved bullet points" if r["llm_used"] else "Bullet templates (enable Ollama for real rewrites)"
+    label = "Improved bullet points" if r["llm_used"] else "Bullet templates (configure Groq for real rewrites)"
     st.markdown(f"<div class='card'><h4>{label}</h4><ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in r["improved_bullets"]) + "</ul></div>",
                 unsafe_allow_html=True)
     st.markdown("<div class='card'><h4>Likely interview questions</h4><ol>" +

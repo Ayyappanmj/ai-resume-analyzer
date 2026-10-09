@@ -1,9 +1,8 @@
-# Rename to docker-compose.override.yml to run WITHOUT Postgres/Ollama containers
-# (e.g. using Ollama installed natively on the host, and no history persistence).
+# Rename to docker-compose.override.yml to run without the Postgres container
+# and without history persistence.
 #
 # services:
 #   backend:
 #     environment:
 #       DATABASE_URL: ""
-#       OLLAMA_HOST: http://host.docker.internal:11434
 #     depends_on: []

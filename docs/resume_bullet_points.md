@@ -8,10 +8,10 @@ Use these if you want to list this project on your own resume.
   taxonomy spanning 8 skill categories.
 - Integrated Sentence-Transformers embeddings for resume-to-job-description semantic similarity,
   with an automatic lexical-overlap fallback for offline resilience.
-- Integrated a locally-hosted Llama 3.1 model (via Ollama) to generate resume summaries, bullet
-  rewrites, and tailored interview questions, with rule-based fallbacks when the LLM is unavailable.
+- Integrated Groq's Llama 3.1 8B Instant API to generate resume summaries, bullet rewrites,
+  and tailored interview questions, with rule-based fallbacks when the LLM is unavailable.
 - Built a PDF report generator (ReportLab) producing a shareable, formatted analysis document.
-- Containerized the full stack (FastAPI, Streamlit, PostgreSQL, Ollama) with Docker Compose and
+- Containerized the full stack (FastAPI, Streamlit, PostgreSQL) with Docker Compose and
   set up a GitHub Actions CI pipeline running automated pytest suites and Docker image builds
   on every push.
 - Wrote unit and integration tests (pytest, FastAPI TestClient) covering NLP extraction, scoring

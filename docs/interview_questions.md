@@ -14,7 +14,7 @@
    you prevent it from fabricating experience?
 
 **Engineering practices**
-7. How do you handle the case where Ollama or the embedding model is unavailable in production?
+7. How do you handle the case where Groq or the embedding model is unavailable in production?
 8. What's in your CI pipeline, and why do the tests mock the LLM and embedding calls?
 9. How would you add authentication and multi-tenant history to this app?
 

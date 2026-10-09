@@ -5,9 +5,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    ollama_host: str = "http://localhost:11434"
-    ollama_model: str = "llama3.1"
-    llm_timeout: int = 15
     use_embeddings: bool = False
 
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"

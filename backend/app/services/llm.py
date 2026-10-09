@@ -1,12 +1,12 @@
-"""Local LLM (Ollama + Llama 3.1) for summary, feedback, bullet rewrites and interview questions."""
+"""Groq-powered resume feedback with rule-based fallbacks."""
 import json
 import logging
+import os
 
-import httpx
-
-from ..config import get_settings
+from groq import Groq, GroqError
 
 log = logging.getLogger(__name__)
+MODEL = "llama-3.1-8b-instant"
 
 SYSTEM = (
     "You are an expert technical recruiter and resume coach. Be specific, honest and concise. "
@@ -41,26 +41,38 @@ def _as_list(v) -> list[str]:
     return []
 
 
+def is_configured() -> bool:
+    return bool(os.getenv("GROQ_API_KEY"))
+
+
+def _groq_client():
+    return Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+
 def analyze_with_llm(resume: str, jd: str, missing: list[str]) -> dict | None:
-    """Return parsed dict or None if Ollama is unreachable / returns garbage."""
-    s = get_settings()
-    body = {
-        "model": s.ollama_model,
-        "stream": False,
-        "format": "json",
-        "options": {"temperature": 0.2, "num_ctx": 4096},
-        "messages": [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": PROMPT.format(
-                resume=resume[:4000], jd=jd[:2500], missing=", ".join(missing[:12]) or "none")},
-        ],
-    }
+    """Return parsed Groq feedback or None when unavailable or invalid."""
+    if not is_configured():
+        log.warning("GROQ_API_KEY is not configured; using rule-based LLM fallbacks")
+        return None
+
+    prompt = PROMPT.format(
+        resume=resume[:4000], jd=jd[:2500], missing=", ".join(missing[:12]) or "none")
     try:
-        r = httpx.post(f"{s.ollama_host}/api/chat", json=body, timeout=s.llm_timeout)
-        r.raise_for_status()
-        data = json.loads(r.json()["message"]["content"])
-    except Exception as exc:
-        log.warning("Ollama call failed: %s", exc)
+        completion = _groq_client().chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+        content = completion.choices[0].message.content
+        if not content:
+            return None
+        data = json.loads(content)
+    except (GroqError, json.JSONDecodeError, IndexError, AttributeError, TypeError) as exc:
+        log.warning("Groq call failed (%s)", type(exc).__name__)
         return None
 
     out = {
@@ -81,7 +93,7 @@ def fallback_summary(*, filename: str, words: int, sections: list[str], skills: 
         "could not be compared against specific skills in the job description"
     return (f"Resume of {words} words with sections: {sec}. Most prominent skills: {top}. "
             f"It scores {ats}/100 for ATS compatibility and {fit}. "
-            "(Rule-based summary - start Ollama for an AI-written one.)")
+            "(Rule-based summary - configure GROQ_API_KEY for an AI-written one.)")
 
 
 def fallback_questions(matched: list[str], missing: list[str]) -> list[str]:

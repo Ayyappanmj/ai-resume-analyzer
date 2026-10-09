@@ -1,11 +1,4 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: resume-ollama
-    ports: ["11434:11434"]
-    volumes: ["ollama_data:/root/.ollama"]
-    restart: unless-stopped
-
   db:
     image: postgres:16-alpine
     container_name: resume-db
@@ -27,14 +20,11 @@ services:
     container_name: resume-backend
     env_file: .env
     environment:
-      OLLAMA_HOST: http://ollama:11434
       DATABASE_URL: postgresql+psycopg2://resume:resume@db:5432/resume
     ports: ["8000:8000"]
     depends_on:
       db:
         condition: service_healthy
-      ollama:
-        condition: service_started
     restart: unless-stopped
 
   frontend:
@@ -47,5 +37,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  ollama_data:
   pg_data:
