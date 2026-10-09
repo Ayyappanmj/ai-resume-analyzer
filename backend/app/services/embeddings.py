@@ -19,6 +19,11 @@ def _model():
     return SentenceTransformer(get_settings().embedding_model)
 
 
+def preload_model() -> None:
+    """Load the configured transformer during application startup."""
+    _model()
+
+
 def _chunks(text: str, words: int = 120) -> list[str]:
     toks = text.split()
     return [" ".join(toks[i:i + words]) for i in range(0, len(toks), words)] or [text]

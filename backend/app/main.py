@@ -1,6 +1,17 @@
 """FastAPI application."""
 import logging
+import os
 from contextlib import asynccontextmanager
+
+# Limit numerical-library thread pools before importing spaCy, NumPy, or PyTorch.
+for _thread_limit in (
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+):
+    os.environ[_thread_limit] = "1"
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +31,8 @@ log = logging.getLogger("resume-analyzer")
 async def lifespan(_: FastAPI):
     db.init_db()
     nlp.get_nlp()  # warm up
+    if get_settings().use_embeddings:
+        embeddings.preload_model()
     yield
 
 

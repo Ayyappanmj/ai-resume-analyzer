@@ -9,6 +9,9 @@ reportlab==4.2.5
 
 spacy==3.7.5
 sentence-transformers==3.3.1
+# Sentence Transformers otherwise installs the default PyTorch build.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
 numpy==1.26.4
 
 httpx==0.28.1

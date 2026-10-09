@@ -51,6 +51,19 @@ def test_health(client):
     assert client.get("/health").json()["status"] == "ok"
 
 
+@pytest.mark.parametrize(("enabled", "expected_calls"), [(False, 0), (True, 1)])
+def test_embedding_model_preload_follows_configuration(monkeypatch, enabled, expected_calls):
+    settings = main.get_settings().model_copy(update={"use_embeddings": enabled})
+    preloaded = []
+    monkeypatch.setattr(main, "get_settings", lambda: settings)
+    monkeypatch.setattr(main.embeddings, "preload_model", lambda: preloaded.append(True))
+
+    with TestClient(main.app):
+        pass
+
+    assert len(preloaded) == expected_calls
+
+
 def test_analyze_and_report(client):
     pdf = make_pdf(RESUME_LINES)
     r = client.post("/analyze", files={"resume": ("cv.pdf", pdf, "application/pdf")},
