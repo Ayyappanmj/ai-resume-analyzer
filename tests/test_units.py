@@ -47,7 +47,7 @@ def test_score_bounds_and_weights():
     total, items = scoring.compute_ats(
         text=RESUME, sections_detected=["summary", "experience", "education", "skills"],
         contact={"email": "a@b.c", "phone": "1"}, matched=["Python"], jd_skills=["Python", "Go"],
-        resume_skills=["Python"], keyword_coverage=0.5, similarity=0.5, method="sentence-transformers")
+        resume_skills=["Python"], keyword_coverage=0.5, similarity=0.5, method="tfidf")
     assert 0 <= total <= 100
     assert sum(i.max for i in items) == 100
     assert all(0 <= i.score <= i.max for i in items)

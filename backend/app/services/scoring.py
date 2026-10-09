@@ -1,4 +1,4 @@
-"""Transparent 0-100 ATS score. Weights: skills 40 / semantic 25 / sections 15 / format 10 / impact 10."""
+"""Transparent 0-100 ATS score. Weights: skills 40 / text similarity 25 / sections 15 / format 10 / impact 10."""
 import re
 
 from ..schemas import ScoreItem
@@ -70,11 +70,11 @@ def compute_ats(
         detail = f"No known skills in JD; {len(resume_skills)} resume skills, {keyword_coverage:.0%} keyword coverage"
     items.append(ScoreItem(name="Skills & Keywords", score=round(s, 1), max=40, detail=detail))
 
-    # 2) Semantic similarity (25)
-    lo, span = (0.15, 0.55) if method == "sentence-transformers" else (0.05, 0.50)
+    # 2) TF-IDF text similarity (25)
+    lo, span = 0.05, 0.50
     sem = _clip((similarity - lo) / span)
     items.append(ScoreItem(name="Semantic Match", score=round(25 * sem, 1), max=25,
-                           detail=f"Cosine similarity {similarity:.2f} ({method})"))
+                           detail=f"Text similarity {similarity:.2f} ({method})"))
 
     # 3) Sections + contact (15)
     present = set(sections_detected)

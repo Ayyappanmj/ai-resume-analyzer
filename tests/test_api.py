@@ -42,7 +42,7 @@ RESUME_LINES = (
 
 @pytest.fixture()
 def client(monkeypatch):
-    monkeypatch.setattr(embeddings, "similarity", lambda a, b: (0.55, "sentence-transformers"))
+    monkeypatch.setattr(embeddings, "similarity", lambda a, b: (0.55, "tfidf"))
     monkeypatch.setattr(llm, "analyze_with_llm", lambda *a, **k: None)
     with TestClient(main.app) as c:
         yield c
@@ -79,6 +79,20 @@ def test_groq_response_is_parsed(monkeypatch):
     assert request["model"] == "llama-3.1-8b-instant"
     assert request["temperature"] == 0.2
     assert request["response_format"] == {"type": "json_object"}
+
+
+def test_similarity_uses_lightweight_tfidf():
+    score, method = embeddings.similarity(
+        "Python APIs with Redis caching",
+        "Backend engineering with Python and Redis",
+    )
+
+    assert 0 < score < 1
+    assert method == "tfidf"
+
+
+def test_similarity_with_empty_text_is_zero():
+    assert embeddings.similarity("", "Python backend role") == (0.0, "tfidf")
 
 
 def test_groq_missing_api_key_returns_fallback(monkeypatch):

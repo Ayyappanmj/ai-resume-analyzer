@@ -4,8 +4,7 @@
 1. Walk me through the architecture of your resume analyzer — why FastAPI + Streamlit instead
    of a single framework?
 2. How would this scale to thousands of concurrent resume uploads?
-3. Why did you choose Sentence-Transformers over a simple keyword-matching approach for
-   similarity — and why keep the lexical fallback at all?
+3. How does TF-IDF cosine similarity work, and what does it miss compared to semantic embeddings?
 
 **NLP / ML**
 4. How does your skill-extraction avoid false positives on ambiguous words (e.g. "R", "Go")?

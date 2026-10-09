@@ -5,11 +5,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    use_embeddings: bool = False
-
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    spacy_model: str = "en_core_web_sm"
-
     # Optional. Example: postgresql+psycopg2://resume:resume@localhost:5432/resume
     database_url: str | None = None
 

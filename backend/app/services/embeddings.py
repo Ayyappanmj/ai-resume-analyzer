@@ -1,65 +1,30 @@
-"""Resume <-> job description similarity with Sentence Transformers (lexical fallback)."""
-import logging
+"""Lightweight pure-Python TF-IDF similarity for resume and job-description text."""
 import math
-import os
 import re
 from collections import Counter
-from functools import lru_cache
-
-import numpy as np
-
-from ..config import get_settings
-
-log = logging.getLogger(__name__)
 
 
-@lru_cache
-def _model():
-    from sentence_transformers import SentenceTransformer
+def _tfidf_cosine(a: str, b: str) -> float:
+    documents = [
+        Counter(re.findall(r"[a-z][a-z+#.]{1,}", text.lower()))
+        for text in (a, b)
+    ]
+    terms = documents[0].keys() | documents[1].keys()
+    vectors: list[dict[str, float]] = [{}, {}]
+    for term in terms:
+        document_frequency = sum(term in document for document in documents)
+        inverse_document_frequency = math.log(3 / (document_frequency + 1)) + 1
+        for index, document in enumerate(documents):
+            count = document.get(term, 0)
+            if count:
+                vectors[index][term] = count * inverse_document_frequency
 
-    return SentenceTransformer(get_settings().embedding_model)
-
-
-def preload_model() -> None:
-    """Load the configured transformer during application startup."""
-    _model()
-
-
-def _chunks(text: str, words: int = 120) -> list[str]:
-    toks = text.split()
-    return [" ".join(toks[i:i + words]) for i in range(0, len(toks), words)] or [text]
-
-
-def _embed(text: str) -> np.ndarray:
-    vecs = _model().encode(
-        _chunks(text), batch_size=8, normalize_embeddings=True, convert_to_numpy=True
-    )
-    v = vecs.mean(axis=0)
-    n = np.linalg.norm(v)
-    return v / n if n else v
-
-
-def _lexical(a: str, b: str) -> float:
-    ta = Counter(re.findall(r"[a-z][a-z+#.]{1,}", a.lower()))
-    tb = Counter(re.findall(r"[a-z][a-z+#.]{1,}", b.lower()))
-    dot = sum(ta[k] * tb[k] for k in ta.keys() & tb.keys())
-    na = math.sqrt(sum(v * v for v in ta.values()))
-    nb = math.sqrt(sum(v * v for v in tb.values()))
-    return dot / (na * nb) if na and nb else 0.0
+    dot = sum(value * vectors[1].get(term, 0.0) for term, value in vectors[0].items())
+    norm_a = math.sqrt(sum(value * value for value in vectors[0].values()))
+    norm_b = math.sqrt(sum(value * value for value in vectors[1].values()))
+    return dot / (norm_a * norm_b) if norm_a and norm_b else 0.0
 
 
 def similarity(resume: str, jd: str) -> tuple[float, str]:
-    """Return (similarity in [0,1], method name).
-
-    Sentence-Transformers is optional. On small cloud instances such as
-    Render's free tier it can consume too much memory / take too long to
-    download, so lexical similarity is the safe default. Set USE_EMBEDDINGS=true
-    when the deployment has enough RAM and the model is available.
-    """
-    if not get_settings().use_embeddings or os.getenv("GROQ_API_KEY"):
-        return _lexical(resume, jd), "lexical-fallback"
-    try:
-        return max(0.0, float(np.dot(_embed(resume), _embed(jd)))), "sentence-transformers"
-    except Exception as exc:
-        log.warning("Embedding model unavailable (%s) - using lexical fallback", exc)
-        return _lexical(resume, jd), "lexical-fallback"
+    """Return TF-IDF cosine similarity in [0, 1] and its method name."""
+    return _tfidf_cosine(resume, jd), "tfidf"

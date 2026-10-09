@@ -1,21 +1,10 @@
 """FastAPI application."""
 import logging
 import multiprocessing
-import os
 import threading
 import time
 from contextlib import asynccontextmanager
 from multiprocessing.connection import Connection
-
-# Limit numerical-library thread pools before importing spaCy, NumPy, or PyTorch.
-for _thread_limit in (
-    "OMP_NUM_THREADS",
-    "MKL_NUM_THREADS",
-    "OPENBLAS_NUM_THREADS",
-    "VECLIB_MAXIMUM_THREADS",
-    "NUMEXPR_NUM_THREADS",
-):
-    os.environ[_thread_limit] = "1"
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -113,15 +102,8 @@ def _process_analysis(
     return result.model_dump(mode="json")
 
 
-def _warm_models() -> None:
-    nlp.get_nlp()
-    if get_settings().use_embeddings and not llm.is_configured():
-        embeddings.preload_model()
-
-
 def _analysis_worker(connection: Connection) -> None:
     try:
-        _warm_models()
         connection.send(("ready",))
         while True:
             request = connection.recv()

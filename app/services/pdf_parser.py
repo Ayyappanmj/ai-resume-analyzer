@@ -2,8 +2,6 @@
 import io
 import re
 
-import pdfplumber
-
 _LIGATURES = {"\ufb01": "fi", "\ufb02": "fl", "\ufb00": "ff", "\ufb03": "ffi", "\ufb04": "ffl"}
 
 
@@ -18,6 +16,8 @@ def normalize_text(text: str) -> str:
 
 def extract_text_from_pdf(data: bytes, max_pages: int = 10) -> tuple[str, int]:
     """Return (text, page_count). Raises on unreadable / encrypted PDFs."""
+    import pdfplumber
+
     parts: list[str] = []
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         pages = len(pdf.pages)

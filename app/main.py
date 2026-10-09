@@ -19,7 +19,6 @@ log = logging.getLogger("resume-analyzer")
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.init_db()
-    nlp.get_nlp()  # warm up
     yield
 
 

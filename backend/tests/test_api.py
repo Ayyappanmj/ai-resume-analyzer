@@ -42,7 +42,7 @@ RESUME_LINES = (
 
 @pytest.fixture()
 def client(monkeypatch):
-    monkeypatch.setattr(embeddings, "similarity", lambda a, b: (0.55, "sentence-transformers"))
+    monkeypatch.setattr(embeddings, "similarity", lambda a, b: (0.55, "tfidf"))
     monkeypatch.setattr(llm, "analyze_with_llm", lambda *a, **k: None)
     with TestClient(main.app) as c:
         yield c
@@ -68,14 +68,18 @@ def test_analysis_timeout_returns_504(client, monkeypatch):
     assert worker_process is not None and not worker_process.is_alive()
 
 
-def test_groq_configuration_skips_local_embeddings(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
-    monkeypatch.setattr(embeddings, "get_settings", lambda: SimpleNamespace(use_embeddings=True))
-    monkeypatch.setattr(embeddings, "_model", lambda: pytest.fail("local model should not load"))
+def test_similarity_uses_lightweight_tfidf():
+    score, method = embeddings.similarity(
+        "Python APIs with Redis caching",
+        "Backend engineering with Python and Redis",
+    )
 
-    _score, method = embeddings.similarity("resume Python API", "Python API engineering role")
+    assert 0 < score < 1
+    assert method == "tfidf"
 
-    assert method == "lexical-fallback"
+
+def test_similarity_with_empty_text_is_zero():
+    assert embeddings.similarity("", "Python backend role") == (0.0, "tfidf")
 
 
 def test_groq_response_is_parsed(monkeypatch):
@@ -110,25 +114,6 @@ def test_groq_missing_api_key_returns_fallback(monkeypatch):
     monkeypatch.setattr(llm, "_groq_client", lambda: pytest.fail("client should not be created"))
 
     assert llm.analyze_with_llm("resume", "job description", []) is None
-
-
-@pytest.mark.parametrize(
-    ("enabled", "groq_configured", "expected_calls"),
-    [(False, False, 0), (True, False, 1), (True, True, 0)],
-)
-def test_embedding_model_preload_follows_configuration(monkeypatch, enabled, groq_configured, expected_calls):
-    settings = main.get_settings().model_copy(update={"use_embeddings": enabled})
-    preloaded = []
-    if groq_configured:
-        monkeypatch.setenv("GROQ_API_KEY", "test-key")
-    else:
-        monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    monkeypatch.setattr(main, "get_settings", lambda: settings)
-    monkeypatch.setattr(main.embeddings, "preload_model", lambda: preloaded.append(True))
-
-    main._warm_models()
-
-    assert len(preloaded) == expected_calls
 
 
 def test_analyze_and_report(client):

@@ -6,8 +6,8 @@ Use these if you want to list this project on your own resume.
   against job descriptions using a transparent, weighted 0-100 ATS algorithm.
 - Implemented NLP-based skill-gap and keyword-coverage detection with spaCy across a 90+ term
   taxonomy spanning 8 skill categories.
-- Integrated Sentence-Transformers embeddings for resume-to-job-description semantic similarity,
-  with an automatic lexical-overlap fallback for offline resilience.
+- Implemented pure-Python TF-IDF cosine similarity for resume-to-job-description matching,
+  avoiding heavyweight local ML model downloads.
 - Integrated Groq's Llama 3.1 8B Instant API to generate resume summaries, bullet rewrites,
   and tailored interview questions, with rule-based fallbacks when the LLM is unavailable.
 - Built a PDF report generator (ReportLab) producing a shareable, formatted analysis document.
