@@ -54,6 +54,30 @@ def test_health(client):
     assert "groq_configured" in response and response["model"] == llm.MODEL
 
 
+def test_analysis_timeout_returns_504(client, monkeypatch):
+    monkeypatch.setattr(main, "ANALYSIS_TIMEOUT_SECONDS", 0)
+    worker_process = main.analysis_worker._process
+    pdf = make_pdf(RESUME_LINES)
+    response = client.post(
+        "/analyze",
+        files={"resume": ("cv.pdf", pdf, "application/pdf")},
+        data={"jd_text": JD, "use_llm": "false"},
+    )
+
+    assert response.status_code == 504
+    assert worker_process is not None and not worker_process.is_alive()
+
+
+def test_groq_configuration_skips_local_embeddings(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setattr(embeddings, "get_settings", lambda: SimpleNamespace(use_embeddings=True))
+    monkeypatch.setattr(embeddings, "_model", lambda: pytest.fail("local model should not load"))
+
+    _score, method = embeddings.similarity("resume Python API", "Python API engineering role")
+
+    assert method == "lexical-fallback"
+
+
 def test_groq_response_is_parsed(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "test-key")
     payload = (
@@ -88,15 +112,21 @@ def test_groq_missing_api_key_returns_fallback(monkeypatch):
     assert llm.analyze_with_llm("resume", "job description", []) is None
 
 
-@pytest.mark.parametrize(("enabled", "expected_calls"), [(False, 0), (True, 1)])
-def test_embedding_model_preload_follows_configuration(monkeypatch, enabled, expected_calls):
+@pytest.mark.parametrize(
+    ("enabled", "groq_configured", "expected_calls"),
+    [(False, False, 0), (True, False, 1), (True, True, 0)],
+)
+def test_embedding_model_preload_follows_configuration(monkeypatch, enabled, groq_configured, expected_calls):
     settings = main.get_settings().model_copy(update={"use_embeddings": enabled})
     preloaded = []
+    if groq_configured:
+        monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    else:
+        monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.setattr(main, "get_settings", lambda: settings)
     monkeypatch.setattr(main.embeddings, "preload_model", lambda: preloaded.append(True))
 
-    with TestClient(main.app):
-        pass
+    main._warm_models()
 
     assert len(preloaded) == expected_calls
 
@@ -128,10 +158,10 @@ def test_requires_jd(client):
 
 
 def test_analysis_error_returns_json_500(client, monkeypatch):
-    def fail_analysis(_text):
+    def fail_analysis(*_args):
         raise RuntimeError("internal processing failure")
 
-    monkeypatch.setattr(main.nlp, "extract_contact", fail_analysis)
+    monkeypatch.setattr(main.analysis_worker, "run", fail_analysis)
     pdf = make_pdf(RESUME_LINES)
     r = client.post("/analyze", files={"resume": ("cv.pdf", pdf, "application/pdf")},
                     data={"jd_text": JD, "use_llm": "false"})

@@ -1,6 +1,7 @@
 """Resume <-> job description similarity with Sentence Transformers (lexical fallback)."""
 import logging
 import math
+import os
 import re
 from collections import Counter
 from functools import lru_cache
@@ -55,7 +56,7 @@ def similarity(resume: str, jd: str) -> tuple[float, str]:
     download, so lexical similarity is the safe default. Set USE_EMBEDDINGS=true
     when the deployment has enough RAM and the model is available.
     """
-    if not get_settings().use_embeddings:
+    if not get_settings().use_embeddings or os.getenv("GROQ_API_KEY"):
         return _lexical(resume, jd), "lexical-fallback"
     try:
         return max(0.0, float(np.dot(_embed(resume), _embed(jd)))), "sentence-transformers"

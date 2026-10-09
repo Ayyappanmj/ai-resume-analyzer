@@ -33,6 +33,7 @@ unavailable, the app **degrades gracefully** to rule-based summaries/questions i
 ## Features
 
 - 📄 Upload a resume PDF (drag & drop)
+- ⏱️ Run PDF parsing and NLP in a terminable worker with a 60-second analysis deadline
 - 📋 Paste or upload a job description (PDF/TXT)
 - 🎯 **ATS score (0–100)** with a transparent, weighted breakdown (skills, semantic match,
   sections/contact, formatting, impact/action verbs) — shown as a donut + radar chart
@@ -157,6 +158,7 @@ before launching for AI insights.
 | GET | `/history?limit=20` | Past analyses (requires `DATABASE_URL`) |
 
 Full interactive docs at `/docs` (Swagger UI) once the backend is running.
+`/analyze` returns HTTP 504 if PDF/NLP/LLM processing exceeds its 60-second deadline; the timed-out worker is terminated.
 
 ## Testing
 
